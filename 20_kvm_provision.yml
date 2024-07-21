@@ -1,5 +1,6 @@
 - name: Deploys VM based on cloud image
   hosts: localhost
+  user: fullpower
   gather_facts: yes
   become: yes
   vars:
