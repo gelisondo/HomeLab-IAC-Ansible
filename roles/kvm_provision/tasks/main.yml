@@ -20,3 +20,73 @@
         ( ansible_facts['distribution'] == "RedHat" ) or
         ( ansible_facts['distribution'] == "Debian")  or
         ( ansible_facts['distribution'] == "Ubuntu")
+
+#Listamos todas las VMs y registramos la salida
+- name: Gets vms list
+  community.libvirt.virt:
+    command: list_vms
+  register: existing_vms
+  changed_when: no 
+  #https://docs.ansible.com/ansible/latest/collections/community/libvirt/virt_module.html
+  
+
+#Cada vez que vamos a realizar un despligue descargaremos una imagen cloud init.
+#Nota: Podemos descargarlos en otro lugar si necesitamos mantener las imagenes  
+- name: Download base image
+  get_url:
+    url: "{{ base_image_url }}"
+    dest: "/tmp/{{ base_image_name }}"
+    checksum: "sha256:{{ base_image_sha }}"
+
+
+- name: Copy base image to libvirt directory
+  copy:
+    dest: "{{ libvirt_pool_dir }}/{{ vm_name }}.qcow2"
+    src: "/tmp/{{ base_image_name }}"
+    force: no
+    remote_src: yes 
+    mode: 0660
+  register: copy_results
+
+#execute the command virt-customize to customize the cloud image
+- name: Configure the image
+  command: |
+    virt-customize -a {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 \
+    --hostname {{ vm_name }} \
+    --root-password password:{{ vm_root_pass }} \
+    --ssh-inject 'root:file:{{ ssh_key }}' \
+    --uninstall cloud-init --selinux-relabel
+  when: ( copy_results is changed )  and ( ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == "RedHat" )
+
+
+#execute the command virt-customize to customize the cloud image
+- name: Configure the image
+  command: |
+    virt-customize -a {{ libvirt_pool_dir }}/{{ vm_name }}.qcow2 \
+    --hostname {{ vm_name }} \
+    --root-password password:{{ vm_root_pass }} \
+    --ssh-inject 'root:file:{{ ssh_key }}' \
+    --uninstall cloud-init 
+  when: ( copy_results is changed ) and ( ansible_facts['distribution'] != "RedHat" or ansible_facts['distribution'] != "CentOS" )
+
+
+- name: Define vm
+  community.libvirt.virt:
+    command: define
+    xml: "{{ lookup('template', 'vm-template.xml.j2') }}"
+    when: "vm_name not in existing_vms.list_vms"
+
+- name: Ensure VM is started
+  community.libvirt.virt:
+    name: "{{ vm_name }}"
+    state: running
+  register: vm_start_results
+  until: "vm_start_results is success"
+  retries: 15
+  delay: 2
+
+- name: Ensure temporary file is deleted
+  file:
+    path: "/tmp/{{ base_image_name }}"
+    state: absent
+  when: cleanup_tmp | bool
