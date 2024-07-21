@@ -1,0 +1,22 @@
+---
+# tasks file for kvm_provision
+- name: Requieriments of fedora 
+  package:
+    name:
+      - guestfs-tools
+      - python3-libvirt
+    state: present
+  become: yes
+  when: ansible_facts['distribution'] == "Fedora"
+
+- name: Requieriments of RedHat, CentOS, Debian or Ubuntu
+  package:
+    name:
+      - libguestfs-tools
+      - python3-libvirt 
+    state: present
+  become: yes
+  when: ( ansible_facts['distribution'] == "CentOS" ) or
+        ( ansible_facts['distribution'] == "RedHat" ) or
+        ( ansible_facts['distribution'] == "Debian")  or
+        ( ansible_facts['distribution'] == "Ubuntu")
