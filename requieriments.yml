@@ -1,0 +1,7 @@
+---
+#sympa 
+
+- src: https://github.com/sympa-community/ansible-role-sympa.git
+  version: main
+  name: ansible-role-sympa
+

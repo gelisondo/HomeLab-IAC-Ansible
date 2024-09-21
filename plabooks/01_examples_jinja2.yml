@@ -1,0 +1,9 @@
+---
+#example to install pacakege depending of SO
+- name: Install paquege with
+  package:
+    name:
+      - net-tools
+      - "{% if ansible_os_family == 'Suse' %}gettext-tools{% elif ansible_os_family == 'RedHat' %}gettext-devel{% elif ansible_os_family == 'Alpine' %}gettext-dev{% else %}gettext{% endif %}"
+
+...
