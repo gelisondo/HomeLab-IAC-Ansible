@@ -55,29 +55,26 @@
 
     #Cada vez que vamos a realizar un despligue descargaremos una imagen cloud init.
     #Nota: Podemos descargarlos en otro lugar si necesitamos mantener las imagenes  
-    - name: Ansible check file exists.
+    - name: Verify to image exist
       stat:
-        path: "{{ libvirt_pool_dir }}/{{ base_image_name }}"
-      register: test_imagen
+       path: "/tmp/{{ base_image_name }}"
+      register: descarga
 
     - name: Download base image
       get_url:
         url: "{{ base_image_url }}"
-        dest: "{{ libvirt_pool_dir }}/{{ base_image_name }}"
+        dest: "/tmp/{{ base_image_name }}"
         checksum: "sha512:{{ base_image_sha }}"
-      when: test_imagen.stat.exists == False
-      
+      when: descarga.stat.exists == False
 
-
-    # - name: Copy base image to libvirt directory
-    #   copy:
-    #     dest: "{{ libvirt_pool_dir }}/{{ item }}.qcow2"
-    #     src: "{{ inventory_dir }}/files/{{ base_image_name }}"
-    #     force: no
-    #     remote_src: yes 
-    #     mode: 0660
-    #   register: copy_results
-    #   with_items: "{{ vm_names }}"
+    - name: Copy base image to libvirt directory
+      copy:
+        dest: "{{ libvirt_pool_dir }}/{{ item }}.qcow2"
+        src: "/tmp/{{ base_image_name }}"
+        force: no
+        remote_src: yes 
+        mode: 0660
+      with_items: "{{ vm_names }}"
 
     #execute the command virt-customize to customize the cloud image
     - name: Configure the image
@@ -87,7 +84,7 @@
         --root-password password:{{ vm_root_pass }} \
         --ssh-inject 'root:file:{{ ssh_key }}' \
         --uninstall cloud-init --selinux-relabel
-      when: ( copy_results is changed )  and ( ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == "RedHat" )
+      when: ( ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == "RedHat" )
       with_items: "{{ vm_names }}"
 
 
@@ -99,14 +96,14 @@
         --root-password password:{{ vm_root_pass }} \
         --ssh-inject 'root:file:{{ ssh_key }}' \
         --uninstall cloud-init 
-      when: ( copy_results is changed ) and ( ansible_facts['distribution'] != "RedHat" or ansible_facts['distribution'] != "CentOS" )
+      when: ( ansible_facts['distribution'] != "RedHat" or ansible_facts['distribution'] != "CentOS" )
       with_items: "{{ vm_names }}"
 
     - name: Define vm
       community.libvirt.virt:
         command: define
-        xml: "{{ lookup('template', 'vm-template.xml.j2') }}"
-      when: "{{ item }} not in existing_vms.list_vms"
+        xml: "{{ lookup('template', 'templates/vm-template.xml.j2') }}"
+      #when: "{{ item }} not in existing_vms.list_vms"
       with_items: "{{ vm_names }}"
 
     - name: Ensure VM is started
@@ -121,6 +118,6 @@
 
     # - name: Ensure temporary file is deleted
     #   file:
-    #     path: "{{ inventory_dir }}/files/{{ base_image_name }}"
+    #     path: "/tmp/{{ base_image_name }}"
     #     state: absent
     #   when: cleanup_tmp | bool
