@@ -1,1 +1,23 @@
-localhost
+---
+all:
+  children:
+    #hipervisores
+    nodos_virt:
+      hosts:
+        tsubasaSystemProductName:
+
+
+    host_kvms:
+      hosts:  
+      #VMs bajo este Hipervisor
+        docker_worker1:
+        docker_worker2:
+
+   #grupo de grupos
+   nodos_virt:
+     children:
+       host_kvms:
+
+tsubasaSystemProductName:
+  hosts: localhost
+...

@@ -11,7 +11,7 @@
         name: sudo
         state: present
       become: yes
-      when: ansible_facts['distribution'] == "Debian"
+      when: ansible_facts['distribution'] == "Debian" or ansible_facts['distribution'] == "Ubuntu"
 
     - name: Creamos el grupo mascapote
       ansible.builtin.group:

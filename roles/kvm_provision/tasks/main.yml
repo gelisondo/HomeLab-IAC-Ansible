@@ -75,7 +75,7 @@
   community.libvirt.virt:
     command: define
     xml: "{{ lookup('template', 'vm-template.xml.j2') }}"
-    when: "vm_name not in existing_vms.list_vms"
+  when: "vm_name not in existing_vms.list_vms"
 
 - name: Ensure VM is started
   community.libvirt.virt:
