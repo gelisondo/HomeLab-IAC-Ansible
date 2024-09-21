@@ -1,22 +1,33 @@
 ---
 all:
   children:
-    #hipervisores
-    nodos_virt:
-      hosts:
-        tsubasaSystemProductName:
 
+    
+    homelab:
+      children:
+        
+        nodos_libvirt:
+          children:
+            homelab_nodos:
+              hosts:
+                tsubasaSystemProductName:
+        
+        
+        homelab_kvm:
+          children:
+            #Listasmos los host KVM a agregar o utilizar
+            homelab_virtuales_tsubasa:
+              hosts:
+                docker_worker1:
+                docker_worker2:
+            vhomelab_virtuales_notebooks:
+              hosts:
+                docker_worker3:
 
-    host_kvms:
-      hosts:  
-      #VMs bajo este Hipervisor
-        docker_worker1:
-        docker_worker2:
-
-   #grupo de grupos
-   nodos_virt:
-     children:
-       host_kvms:
+        #grupo de grupos
+        homalab_hosts_tsubasa:
+          children:
+            homelab_virtuales_tsubasa:
 
 tsubasaSystemProductName:
   hosts: localhost
