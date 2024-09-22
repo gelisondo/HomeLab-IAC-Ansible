@@ -74,6 +74,7 @@
         force: no
         remote_src: yes 
         mode: 0660
+      when: "item not in existing_vms.list_vms"
       with_items: "{{ vm_names }}"
 
     #execute the command virt-customize to customize the cloud image
@@ -84,7 +85,7 @@
         --root-password password:{{ vm_root_pass }} \
         --ssh-inject 'root:file:{{ ssh_key }}' \
         --uninstall cloud-init --selinux-relabel
-      when: ( ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == "RedHat" )
+      when: ( ansible_facts['distribution'] == "RedHat" or ansible_facts['distribution'] == "RedHat" ) and ( item not in existing_vms.list_vms )
       with_items: "{{ vm_names }}"
 
 
@@ -96,14 +97,14 @@
         --root-password password:{{ vm_root_pass }} \
         --ssh-inject 'root:file:{{ ssh_key }}' \
         --uninstall cloud-init 
-      when: ( ansible_facts['distribution'] != "RedHat" or ansible_facts['distribution'] != "CentOS" )
+      when: ( ansible_facts['distribution'] != "RedHat" or ansible_facts['distribution'] != "CentOS" ) and ( item not in existing_vms.list_vms )
       with_items: "{{ vm_names }}"
 
     - name: Define vm
       community.libvirt.virt:
         command: define
         xml: "{{ lookup('template', 'templates/vm-template.xml.j2') }}"
-      #when: "{{ item }} not in existing_vms.list_vms"
+      when: "item not in existing_vms.list_vms"
       with_items: "{{ vm_names }}"
 
     - name: Ensure VM is started
