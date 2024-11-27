@@ -1,8 +1,6 @@
 ---
 all:
   children:
-
-    
     homelab:
       children:
         dockerWorkers:

@@ -28,6 +28,12 @@
       vm4:
         name: DockerWorker4
         ip: 192.168.101.13
+      vm5:
+        name: DockerManager1
+        ip: 192.168.101.20
+      vm6:
+        name: DockerManager2
+        ip: 192.168.101.21
 
   tasks:
     - name: Requieriments of Debian
@@ -67,13 +73,13 @@
         --ssh-inject 'root:file:{{ ssh_key }}' \
       loop: "{{ lvm_names.values() }}"
 
-    - name: Create Custom-network for cloud-init
+    - name: Create Custom network template for cloud-init
       template:
         src: templates/custom-network.j2
         dest: "/tmp/{{ item.name }}-custom-network"
       loop: "{{ lvm_names.values() }}"
 
-    - name: Inject cloud-init data
+    - name: Inject cloud-init data to config network
       command: >
         virt-customize -a {{ libvirt_pool_dir }}/{{ item.name }}.qcow2
         --upload /tmp/{{ item.name }}-custom-network:/etc/netplan/01-network.yaml
@@ -91,6 +97,10 @@
         name: "{{ item.name }}"
         state: running
       loop: "{{ lvm_names.values() }}"
+
+    - name: Import Playbook to Config SSH
+      import_tasks: playbooks/21-ConfigSshService.yml
+
 
 
     # - name: Ensure temporary file is deleted

@@ -1,0 +1,7 @@
+---
+- name: Configuración inicial de la VM
+  hosts: homelab
+  become: yes
+  tasks:
+    - name: Generar claves SSH para el servicio
+      command: ssh-keygen -A

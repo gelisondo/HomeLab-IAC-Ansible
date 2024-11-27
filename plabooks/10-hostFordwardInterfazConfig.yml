@@ -1,0 +1,70 @@
+---
+- name: Configurar host principal como gateway para VMs
+  hosts: localhost
+  become: yes
+  vars:
+    bridge_interface: "br0"
+    outgoing_interface: "wlan0"
+
+  tasks:
+    - name: Habilitar reenvío de paquetes IPv4
+      ansible.builtin.sysctl:
+        name: net.ipv4.ip_forward
+        value: "1"
+        state: present
+        sysctl_set: yes
+
+    - name: Habilitar reenvío de paquetes IPv6
+      ansible.builtin.sysctl:
+        name: net.ipv6.conf.all.forwarding
+        value: "1"
+        state: present
+        sysctl_set: yes
+
+    - name: Asegurar que el paquete iptables-persistent esté instalado
+      ansible.builtin.package:
+        name: iptables-persistent
+        state: present
+
+    - name: Configurar NAT para el tráfico saliente
+      ansible.builtin.iptables:
+        table: nat
+        chain: POSTROUTING
+        jump: MASQUERADE
+        out_interface: "{{ outgoing_interface }}"
+        state: present
+        comment: "Regla NAT para {{ outgoing_interface }}"
+
+    - name: Permitir tráfico de VMs hacia la red externa
+      ansible.builtin.iptables:
+        table: filter
+        chain: FORWARD
+        in_interface: "{{ bridge_interface }}"
+        out_interface: "{{ outgoing_interface }}"
+        jump: ACCEPT
+        state: present
+        comment: "Permitir tráfico de {{ bridge_interface }} hacia {{ outgoing_interface }}"
+
+    - name: Permitir tráfico de respuesta hacia las VMs
+      ansible.builtin.iptables:
+        table: filter
+        chain: FORWARD
+        in_interface: "{{ outgoing_interface }}"
+        out_interface: "{{ bridge_interface }}"
+        jump: ACCEPT
+        ctstate: RELATED,ESTABLISHED
+        state: present
+        comment: "Permitir tráfico de respuesta desde {{ outgoing_interface }} hacia {{ bridge_interface }}"
+
+    - name: Guardar las reglas de iptables
+      ansible.builtin.command:
+        cmd: iptables-save > /etc/iptables/rules.v4
+        creates: /etc/iptables/rules.v4
+      notify:
+        - Reiniciar iptables
+
+  handlers:
+    - name: Reiniciar iptables
+      ansible.builtin.service:
+        name: netfilter-persistent
+        state: restarted
