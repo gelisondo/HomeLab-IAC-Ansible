@@ -1,0 +1,51 @@
+---
+
+- name: Configura Usuario Administrador
+  hosts: localhost
+  user: fullpower
+  become: yes
+  gather_facts: yes
+  become: yes
+
+  tasks:
+    - name: verificamos que el paquete sudo exista
+      package:
+        name: sudo
+        state: present
+      become: yes
+      when: ansible_facts['distribution'] == "Debian" or ansible_facts['distribution'] == "Ubuntu"
+
+    - name: Creamos el grupo mascapote
+      ansible.builtin.group:
+        name: mascapote
+        state: present
+
+    - name: Agregamos grupo Mascapote
+      ansible.builtin.lineinfile:
+        path: /etc/sudoers
+        insertafter: "EOF"
+        line: "%mascapote ALL=(ALL) NOPASSWD: ALL"
+
+    - name: Crea usuario - fullpower
+      ansible.builtin.user:
+        name: fullpower
+        groups: mascapote
+        shell: /bin/bash
+        createhome: yes
+        state: present
+
+    - name: Crea directorio remoto .ssh
+      ansible.builtin.file:
+        path: "/home/fullpower/.ssh"
+        owner: "fullpower"
+        group: "mascapote"
+        state: directory
+        mode: '0700'
+
+    - name: Desplegamos llaves privadas 
+      authorized_key:
+        user: fullpower
+        key: '{{ item }}'
+        state: present
+      with_file:
+        - "{{ inventory_dir }}/files/PublicKeys/id_rsa-tsubasaadmin.pub"

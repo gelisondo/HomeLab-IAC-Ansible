@@ -92,14 +92,19 @@
         xml: "{{ lookup('template', 'templates/vm-template.xml.22.j2') }}"
       loop: "{{ lvm_names.values() }}"
 
+    - name: Instala SSH en las imágenes de las VMs
+      command: >
+        virt-customize -a /var/lib/libvirt/images/{{ item.name }}.qcow2
+        --install openssh-server --run-command 'ssh-keygen -A' --run-command 'systemctl enable ssh'
+
     - name: Create VM
       community.libvirt.virt:
         name: "{{ item.name }}"
         state: running
       loop: "{{ lvm_names.values() }}"
 
-    - name: Import Playbook to Config SSH
-      import_tasks: playbooks/21-ConfigSshService.yml
+    #- name: Import Playbook to Config SSH
+    #  import_tasks: playbooks/21-ConfigSshService.yml
 
 
 
