@@ -1,10 +1,11 @@
 ---
 - name: Configurar host principal como gateway para VMs
   hosts: localhost
+  user: fullpower
   become: yes
   vars:
     bridge_interface: "br0"
-    outgoing_interface: "wlan0"
+    outgoing_interface: "wlo1"
 
   tasks:
     - name: Habilitar reenvío de paquetes IPv4
