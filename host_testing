@@ -3,25 +3,27 @@ all:
   children:
     homelab:
       children:
-        dockerWorkers:
-          hosts:
-            #Listasmos los host VMs destinadas a ser agregados como  workers en Docker Swarm
-            DockerWorker1:
-              ansible_connection: local
-            DockerWorker2:
-              ansible_connection: local
-            DockerWorker3:
-              ansible_connection: local
-            DockerWorker4:
-              ansible_connection: local  
+        dockerSwarm:
+          children:
+            dockerWorkers:
+              hosts:
+                #Listasmos los host VMs destinadas a ser agregados como  workers en Docker Swarm
+                DockerWorker1:
+                  ansible_connection: local
+                DockerWorker2:
+                  ansible_connection: local
+                DockerWorker3:
+                  ansible_connection: local
+                DockerWorker4:
+                  ansible_connection: local  
 
-        dockerManagers:
-          hosts:
-            #Listasmos los host VMs destinadas a ser configurados como  Managers en Docker Swarm
-            DockerManager1:
-              ansible_connection: local
-            DockerManager2:
-              ansible_connection: local
+            dockerManagers:
+              hosts:
+                #Listasmos los host VMs destinadas a ser configurados como  Managers en Docker Swarm
+                DockerManager1:
+                  ansible_connection: local
+                DockerManager2:
+                  ansible_connection: local
 
 
 

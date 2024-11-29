@@ -15,25 +15,6 @@
     vm_net: bridged-network
     vm_root_pass: "test123"
     ssh_key: "{{ inventory_dir }}/files/PublicKeys/id_rsa-tsubasaadmin.pub"
-    lvm_names:
-      vm1:
-        name: DockerWorker1
-        ip: 192.168.101.10
-      vm2:
-        name: DockerWorker2
-        ip: 192.168.101.11
-      vm3:
-        name: DockerWorker3
-        ip: 192.168.101.12
-      vm4:
-        name: DockerWorker4
-        ip: 192.168.101.13
-      vm5:
-        name: DockerManager1
-        ip: 192.168.101.20
-      vm6:
-        name: DockerManager2
-        ip: 192.168.101.21
 
   tasks:
     - name: Requieriments of Debian
@@ -58,26 +39,26 @@
 
     - name: Copy base image to libvirt directory
       copy:
-        dest: "{{ libvirt_pool_dir }}/{{ item.name }}.qcow2"
+        dest: "{{ libvirt_pool_dir }}/{{ item }}.qcow2"
         src: "/tmp/{{ base_image_name }}"
         force: no
         remote_src: yes 
         mode: 0660
-      loop: "{{ lvm_names.values() }}"
+      loop: "{{ groups['homelab'] }}"
 
     - name: Configure the image
       command: |
-        virt-customize -a {{ libvirt_pool_dir }}/{{ item.name }}.qcow2 \
-        --hostname {{ item.name }} \
-        --root-password password:{{ vm_root_pass }} \
-        --ssh-inject 'root:file:{{ ssh_key }}' \
-      loop: "{{ lvm_names.values() }}"
+        virt-customize -a {{ libvirt_pool_dir }}/{{ item }}.qcow2 \
+        --hostname {{ item }} \
+        --root-password password:{{ hostvars[item].vm_root_pass }} \
+        --ssh-inject 'root:file:{{ hostvars[item].ssh_key }}' \
+      loop: "{{ groups['homelab'] }}"
 
     - name: Create Custom network template for cloud-init
       template:
         src: templates/custom-network.j2
-        dest: "/tmp/{{ item.name }}-custom-network"
-      loop: "{{ lvm_names.values() }}"
+        dest: "/tmp/{{ item }}-custom-network"
+      loop: "{{ groups['dockerSwarm'] }}"
 
     - name: Inject cloud-init data to config network
       command: >

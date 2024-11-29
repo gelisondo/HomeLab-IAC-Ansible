@@ -2,7 +2,7 @@
 
 #vm_net: default
 vm_net: bridged-network #Modifico esta varible para que utilice un Bridge para comunicarnos directamente con la VM
-
+ip_vm: 192.168.101.10
 vm_root_pass: "{{ vault_root_pass }}"
 ssh_key: "{{ vault_publicKeys }}"
 
