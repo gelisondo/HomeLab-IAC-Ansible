@@ -4,7 +4,7 @@ network:
   ethernets:
     enp1s0:
       addresses:
-        - "{{ item.ip }}/24"
+        - "{{ hostvars[item].ip_vm }}/24"
       gateway4: 192.168.101.1
       nameservers:
         addresses:

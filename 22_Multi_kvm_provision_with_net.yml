@@ -10,10 +10,6 @@
     base_image_url: https://cloud.debian.org/images/cloud/bookworm/20240717-1811/{{ base_image_name }}
     base_image_sha: 9ce1ce8c0f16958dd07bce6dd44d12f4d44d12593432a3a8f7c890c262ce78b0402642fa25c22941760b5a84d631cf81e2cb9dc39815be25bf3a2b56388504c6
     libvirt_pool_dir: "/var/lib/libvirt/images"
-    vm_vcpus: 2
-    vm_ram_mb: 2048
-    vm_net: bridged-network
-    vm_root_pass: "test123"
     ssh_key: "{{ inventory_dir }}/files/PublicKeys/id_rsa-tsubasaadmin.pub"
 
   tasks:
@@ -51,38 +47,39 @@
         virt-customize -a {{ libvirt_pool_dir }}/{{ item }}.qcow2 \
         --hostname {{ item }} \
         --root-password password:{{ hostvars[item].vm_root_pass }} \
-        --ssh-inject 'root:file:{{ hostvars[item].ssh_key }}' \
+        --ssh-inject 'root:file:{{ ssh_key }}' \
       loop: "{{ groups['homelab'] }}"
 
     - name: Create Custom network template for cloud-init
       template:
         src: templates/custom-network.j2
         dest: "/tmp/{{ item }}-custom-network"
-      loop: "{{ groups['dockerSwarm'] }}"
+      loop: "{{ groups['homelab'] }}"
 
     - name: Inject cloud-init data to config network
       command: >
-        virt-customize -a {{ libvirt_pool_dir }}/{{ item.name }}.qcow2
-        --upload /tmp/{{ item.name }}-custom-network:/etc/netplan/01-network.yaml
-      loop: "{{ lvm_names.values() }}"
+        virt-customize -a {{ libvirt_pool_dir }}/{{ item }}.qcow2
+        --upload /tmp/{{ item }}-custom-network:/etc/netplan/01-network.yaml
+      loop: "{{ groups['homelab'] }}"
 
 
     - name: Define vm
       community.libvirt.virt:
         command: define
         xml: "{{ lookup('template', 'templates/vm-template.xml.22.j2') }}"
-      loop: "{{ lvm_names.values() }}"
+      loop: "{{ groups['homelab'] }}"
 
     - name: Instala SSH en las imágenes de las VMs
       command: >
-        virt-customize -a /var/lib/libvirt/images/{{ item.name }}.qcow2
+        virt-customize -a /var/lib/libvirt/images/{{ item }}.qcow2
         --install openssh-server --run-command 'ssh-keygen -A' --run-command 'systemctl enable ssh'
+      loop: "{{ groups['homelab'] }}"
 
     - name: Create VM
       community.libvirt.virt:
-        name: "{{ item.name }}"
+        name: "{{ item }}"
         state: running
-      loop: "{{ lvm_names.values() }}"
+      loop: "{{ groups['homelab'] }}"
 
     #- name: Import Playbook to Config SSH
     #  import_tasks: playbooks/21-ConfigSshService.yml
