@@ -1,0 +1,13 @@
+---
+- name: Start VMs
+  hosts: localhost
+  user: fullpower
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Start Vms
+      community.libvirt.virt:
+        name: "{{ item }}"
+        state: running
+      loop: "{{ groups['dockerSwarm'] }}" 
