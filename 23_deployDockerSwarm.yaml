@@ -1,0 +1,92 @@
+- name: Gestionar clúster Docker Swarm
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    advertise_network: "{{ advertise_network | default(ansible_host) }}"
+    listen_network: "{{ listen_network | default('0.0.0.0') }}"
+  vars_files:
+    - group_vars/dockerManagers/vars/dockerSwarm.yml
+    - group_vars/dockerWorkers/vars/dockerSwarm.yml
+  tasks:
+    - name: Cargar tokens desde el vault si existen (Managers)
+      include_vars:
+        file: "group_vars/dockerManagers/vaults/main.yml"
+        name: vault
+      ignore_errors: yes
+
+    - name: Asignar tokenManager desde el vault
+      set_fact:
+        tokenManagers: "{{ vault_tokenManagers | default('') }}"
+
+    - name: Cargar tokens desde el vault si existen (Workers)
+      include_vars:
+        file: "group_vars/dockerWorkers/vaults/main.yml"
+        name: vault
+      ignore_errors: yes
+
+    - name: Asignar tokenWorker desde el vault
+      set_fact:
+        tokenWorkers: "{{ vault_tokenWorkers | default('') }}"
+
+    - name: Verificar si el clúster ya está inicializado
+      shell: docker info --format '{{json .Swarm.LocalNodeState}}'
+      register: swarm_state
+      failed_when: swarm_state.stdout == "inactive"
+
+    - name: Inicializar el clúster si no existe
+      community.docker.docker_swarm:
+        state: present
+        advertise_addr: "{{ advertise_network }}"
+        listen_addr: "{{ listen_network }}"
+      when: swarm_state.stdout == '"inactive"'
+      register: swarm_init
+
+    - name: Guardar tokens en el vault (Managers)
+      copy:
+        content: |
+          vault_tokenManagers: "{{ swarm_init.join_tokens.manager }}"
+        dest: "group_vars/dockerManagers/vaults/main.yml"
+        mode: "0600"
+        owner: "{{ owner }}"
+        group: "{{ group }}"
+      when: swarm_state.stdout == '"inactive"'
+
+    - name: Guardar tokens en el vault (Workers)
+      copy:
+        content: |
+          vault_tokenWorkers: "{{ swarm_init.join_tokens.worker }}"
+        dest: "group_vars/dockerWorkers/vaults/main.yml"
+        mode: "0600"
+        owner: "{{ owner }}"
+        group: "{{ group }}"
+      when: swarm_state.stdout == '"inactive"'
+
+- name: Agregar nuevos managers al clúster
+  hosts: dockerManagers
+  become: true
+  tasks:
+    - name: Unir al clúster como manager
+      community.docker.docker_swarm:
+        state: join
+        join_token: "{{ tokenManagers }}"
+        remote_addrs:
+          - "{{ hostvars[groups['dockerManagers'][0]]['ansible_host'] }}"
+        advertise_addr: "{{ advertise_network }}"
+        listen_addr: "{{ listen_network }}"
+      when: inventory_hostname != groups['dockerManagers'][0]
+
+- name: Agregar nuevos workers al clúster
+  hosts: dockerWorkers
+  become: true
+  tasks:
+    - name: Unir al clúster como worker
+      community.docker.docker_swarm:
+        state: join
+        join_token: "{{ tokenWorkers }}"
+        remote_addrs:
+          - "{{ hostvars[groups['dockerManagers'][0]]['ansible_host'] }}"
+        advertise_addr: "{{ advertise_network }}"
+        listen_addr: "{{ listen_network }}"
