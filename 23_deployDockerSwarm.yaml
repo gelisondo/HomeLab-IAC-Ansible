@@ -3,6 +3,12 @@
   user: root
   gather_facts: true
   vars:
+    primary_package:
+      - gnupg2
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
     package_docker:
       - docker-ce
       - docker-ce-cli
@@ -10,10 +16,21 @@
       - docker-buildx-plugin
       - docker-compose-plugin
   tasks:
+    - name: Instalamos paquetes Primarios
+      ansible.builtin.apt:
+        pkg: "{{ item }}"
+        state: present
+      loop: "{{ primary_package }}"
+
     - name: Descargar clave GPG para Docker
       ansible.builtin.get_url:
         url: https://download.docker.com/linux/debian/gpg
         dest: /etc/apt/keyrings/docker.gpg
+
+    - name: Convertimos la clave GPG al formato dearmor
+      ansible.builtin.command:
+        cmd: gpg --dearmor -o /etc/apt/trusted.gpg.d/docker.gpg /etc/apt/keyrings/docker.gpg
+        creates: /etc/apt/trusted.gpg.d/docker.gpg
 
     - name: Agregar repositorio de Docker
       ansible.builtin.apt_repository:

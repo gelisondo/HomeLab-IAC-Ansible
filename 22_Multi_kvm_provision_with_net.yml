@@ -42,6 +42,11 @@
         mode: 0660
       loop: "{{ groups['homelab'] }}"
 
+    - name: Resize Image
+      command: |
+        qemu-img resize {{ libvirt_pool_dir }}/{{ item }}.qcow2 {{ hostvars[item].disk_size | default('5G') }}
+      loop: "{{ groups['homelab'] }}"
+
     - name: Configure the image
       command: |
         virt-customize -a {{ libvirt_pool_dir }}/{{ item }}.qcow2 \
