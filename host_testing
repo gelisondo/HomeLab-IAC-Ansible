@@ -9,21 +9,23 @@ all:
               hosts:
                 #Listasmos los host VMs destinadas a ser agregados como  workers en Docker Swarm
                 DockerWorker1:
-                  ansible_connection: local
+                  ansible_host: 192.168.101.10
                 DockerWorker2:
-                  ansible_connection: local
+                  ansible_host: 192.168.101.11
                 DockerWorker3:
-                  ansible_connection: local
+                  ansible_host: 192.168.101.12
                 DockerWorker4:
-                  ansible_connection: local  
+                  ansible_host: 192.168.101.13
+                    
 
             dockerManagers:
               hosts:
                 #Listasmos los host VMs destinadas a ser configurados como  Managers en Docker Swarm
                 DockerManager1:
-                  ansible_connection: local
+                  ansible_host: 192.168.101.20
                 DockerManager2:
-                  ansible_connection: local
+                  ansible_host: 192.168.101.21
+                  
 
 
 
