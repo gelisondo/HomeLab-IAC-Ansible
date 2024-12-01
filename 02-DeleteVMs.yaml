@@ -1,0 +1,18 @@
+---
+- name: Start VMs
+  hosts: localhost
+  user: fullpower
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: Stop Vms
+      community.libvirt.command:
+        cmd: virsh shutdown {{ item }}
+      loop: "{{ groups['dockerSwarm'] }}"
+
+    - name: Start Vms
+      community.libvirt.command:
+        cmd: virsh undefine {{ item }} --remove-all-storage
+      loop: "{{ groups['dockerSwarm'] }}" 
+
