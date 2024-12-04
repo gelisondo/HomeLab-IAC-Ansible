@@ -8,6 +8,7 @@
       - apt-transport-https
       - ca-certificates
       - curl
+      - gnupg
       - software-properties-common
     package_docker:
       - docker-ce
@@ -22,15 +23,33 @@
         state: present
       loop: "{{ primary_package }}"
 
-    - name: Descargar clave GPG para Docker
+    - name: Prepara la carpeta keyrings
+      ansible.builtin.command:
+        cmd: | 
+          install -m 0755 -d /etc/apt/keyrings
+
+    - name: Download file with custom HTTP headers
       ansible.builtin.get_url:
         url: https://download.docker.com/linux/debian/gpg
-        dest: /etc/apt/keyrings/docker.gpg
+        dest: /tmp/docker.debin.gpg
 
-    - name: Convertimos la clave GPG al formato dearmor
+    - name: Cambiamos el formato de la clave GPG a dearmor
       ansible.builtin.command:
-        cmd: gpg --dearmor -o /etc/apt/trusted.gpg.d/docker.gpg /etc/apt/keyrings/docker.gpg
-        creates: /etc/apt/trusted.gpg.d/docker.gpg
+        cmd: | 
+          gpg --dearmor --y -o /etc/apt/keyrings/docker.gpg /tmp/docker.debin.gpg
+
+    - name: Camibamos los atributos del KeyRing
+      ansible.builtin.command:
+        cmd: | 
+          chmod a+r /etc/apt/keyrings/docker.gpg
+
+    # - name: Agregamos el repositorio
+    #   ansible.builtin.command:
+    #     cmd: |
+    #       echo \
+    #       "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian \
+    #       $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    #       sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
     - name: Agregar repositorio de Docker
       ansible.builtin.apt_repository:
@@ -39,11 +58,14 @@
 
     - name: Instalar paquetes necesarios para Docker
       ansible.builtin.apt:
-        pkg: "{{ package_docker }}"
+        pkg: "{{ item }}"
         state: present
+        update_cache: yes
+      loop: "{{ package_docker }}"
       when:
         - ansible_facts['distribution'] == "Debian"
         - ansible_facts['distribution_release'] in ["bullseye", "bookworm"]
+      
 
 - name: Inicializar o administrar el clúster Docker Swarm
   hosts: dockerManagers

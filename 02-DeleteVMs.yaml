@@ -7,12 +7,20 @@
 
   tasks:
     - name: Stop Vms
-      community.libvirt.command:
+      command:
         cmd: virsh shutdown {{ item }}
       loop: "{{ groups['dockerSwarm'] }}"
+      ignore_errors: True
 
-    - name: Start Vms
-      community.libvirt.command:
+    - name: Delete Vms
+      command:
         cmd: virsh undefine {{ item }} --remove-all-storage
       loop: "{{ groups['dockerSwarm'] }}" 
+      ignore_errors: True
+
+    - name: Delete Disk
+      command:
+        cmd: rm /var/lib/libvirt/images/{{ item }}.qcow2
+      loop: "{{ groups['dockerSwarm'] }}"
+      ignore_errors: True
 
