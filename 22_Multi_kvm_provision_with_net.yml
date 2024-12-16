@@ -11,6 +11,9 @@
     base_image_sha: 9ce1ce8c0f16958dd07bce6dd44d12f4d44d12593432a3a8f7c890c262ce78b0402642fa25c22941760b5a84d631cf81e2cb9dc39815be25bf3a2b56388504c6
     libvirt_pool_dir: "/var/lib/libvirt/images"
     ssh_key: "{{ inventory_dir }}/files/PublicKeys/id_rsa-tsubasaadmin.pub"
+    mount_iso: "/mnt/gparted-live-1.6.0-10-amd64.iso"
+    #boot_dev: ej hd, or , cdrom
+    boot_dev: cdrom
 
   tasks:
     - name: Requieriments of Debian
@@ -44,13 +47,19 @@
 
     - name: Resize Image
       command: |
-        qemu-img resize {{ libvirt_pool_dir }}/{{ item }}.qcow2 {{ hostvars[item].disk_size | default('5G') }}
+        qemu-img resize {{ libvirt_pool_dir }}/{{ item }}.qcow2 +{{ hostvars[item].disk_size | default('5G') }}
       loop: "{{ groups['homelab'] }}"
 
-    - name: Expandimos los discos
-      command: |
-         virt-sparsify --in-place {{ libvirt_pool_dir }}/{{ item }}.qcow2
-      loop: "{{ groups['homelab'] }}"
+    # - name: Expandimos los discos
+    #   command: |
+    #      virt-resize --expand /dev/vda1 --in-place {{ libvirt_pool_dir }}/{{ item }}.qcow2
+    #   loop: "{{ groups['homelab'] }}"
+
+    # - name: Ajustamos el FileSystem al nuevo tamaño
+    #   command: |
+    #      virt-customize -a {{ libvirt_pool_dir }}/{{ item }}.qcow2 \
+    #      --run-command 'resize2f /dev/vda1'
+    #   loop: "{{ groups['homelab'] }}"
 
     - name: Configure the image
       command: |
